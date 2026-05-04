@@ -1,0 +1,9 @@
+# Deterministic exclusions for one-time public export.
+# Paths are relative to repository root.
+
+draft_DUA.md
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+analysis/data/participant_*
+analysis/data/window_original_model_attribution.csv

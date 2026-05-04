@@ -1,0 +1,91 @@
+model_label,category,mean_pct,ci_lower_pct,ci_upper_pct,n
+GPT-5.4 Nano,sycophancy,14.9,13.3,16.6,1807
+GPT-5.4 Nano,delusional,16.1,14.1,18.0,1350
+GPT-5.4 Nano,relationship,12.8,11.0,14.6,1237
+GPT-5.4 Nano,facilitates harm,0.0,0.0,0.0,471
+GPT-5.4 Nano,discourages harm,52.2,48.0,56.4,544
+GPT-4.1,sycophancy,31.6,29.4,33.8,1807
+GPT-4.1,delusional,47.8,45.1,50.4,1350
+GPT-4.1,relationship,37.9,35.2,40.7,1237
+GPT-4.1,facilitates harm,4.7,2.8,6.6,471
+GPT-4.1,discourages harm,15.1,12.1,18.2,544
+GPT-5.4,sycophancy,20.1,18.3,22.0,1807
+GPT-5.4,delusional,12.8,11.0,14.7,1350
+GPT-5.4,relationship,11.6,9.9,13.4,1237
+GPT-5.4,facilitates harm,0.4,0.0,1.1,471
+GPT-5.4,discourages harm,63.2,59.2,67.1,544
+GPT-5.4 (high),sycophancy,19.8,18.0,21.7,1807
+GPT-5.4 (high),delusional,9.6,8.1,11.3,1350
+GPT-5.4 (high),relationship,9.5,7.8,11.2,1237
+GPT-5.4 (high),facilitates harm,0.0,0.0,0.0,471
+GPT-5.4 (high),discourages harm,62.9,58.8,66.9,544
+Qwen3.5-9B (low),sycophancy,10.3,8.9,11.7,1807
+Qwen3.5-9B (low),delusional,12.2,10.5,14.0,1350
+Qwen3.5-9B (low),relationship,8.6,7.0,10.2,1237
+Qwen3.5-9B (low),facilitates harm,1.1,0.2,2.1,471
+Qwen3.5-9B (low),discourages harm,5.0,3.1,6.8,544
+Gemini 3.1 Pro (minimal),sycophancy,29.2,27.2,31.3,1807
+Gemini 3.1 Pro (minimal),delusional,44.7,42.1,47.3,1350
+Gemini 3.1 Pro (minimal),relationship,38.6,35.9,41.2,1237
+Gemini 3.1 Pro (minimal),facilitates harm,2.8,1.5,4.2,471
+Gemini 3.1 Pro (minimal),discourages harm,29.4,25.7,33.3,544
+Gemini 3.1 Flash-Lite (minimal),sycophancy,32.7,30.6,34.9,1807
+Gemini 3.1 Flash-Lite (minimal),delusional,65.9,63.4,68.4,1350
+Gemini 3.1 Flash-Lite (minimal),relationship,39.2,36.5,41.9,1237
+Gemini 3.1 Flash-Lite (minimal),facilitates harm,8.5,6.2,11.0,471
+Gemini 3.1 Flash-Lite (minimal),discourages harm,25.7,22.2,29.4,544
+GPT-4 Turbo,sycophancy,20.8,18.9,22.7,1807
+GPT-4 Turbo,delusional,32.3,29.8,34.7,1350
+GPT-4 Turbo,relationship,22.7,20.4,25.1,1237
+GPT-4 Turbo,facilitates harm,2.3,1.1,3.8,471
+GPT-4 Turbo,discourages harm,13.2,10.5,16.2,544
+Claude Opus 4.7,sycophancy,26.3,24.3,28.4,1807
+Claude Opus 4.7,delusional,26.1,23.9,28.4,1350
+Claude Opus 4.7,relationship,27.6,25.2,30.2,1237
+Claude Opus 4.7,facilitates harm,3.6,2.1,5.3,471
+Claude Opus 4.7,discourages harm,36.2,32.2,40.4,544
+Qwen3.5-397B (high),sycophancy,19.3,17.5,21.1,1807
+Qwen3.5-397B (high),delusional,28.1,25.7,30.4,1350
+Qwen3.5-397B (high),relationship,21.0,18.8,23.4,1237
+Qwen3.5-397B (high),facilitates harm,1.7,0.6,3.0,471
+Qwen3.5-397B (high),discourages harm,13.2,10.5,16.2,544
+Qwen3.5-397B (low),sycophancy,20.1,18.3,22.0,1807
+Qwen3.5-397B (low),delusional,28.2,25.9,30.7,1350
+Qwen3.5-397B (low),relationship,22.2,19.8,24.5,1237
+Qwen3.5-397B (low),facilitates harm,0.6,0.0,1.5,471
+Qwen3.5-397B (low),discourages harm,11.9,9.4,14.7,544
+Claude Sonnet 4.6,sycophancy,25.7,23.7,27.7,1807
+Claude Sonnet 4.6,delusional,27.6,25.3,30.0,1350
+Claude Sonnet 4.6,relationship,20.8,18.6,23.0,1237
+Claude Sonnet 4.6,facilitates harm,1.9,0.8,3.2,471
+Claude Sonnet 4.6,discourages harm,23.5,20.0,27.2,544
+Grok 4.20,sycophancy,33.9,31.8,36.2,1807
+Grok 4.20,delusional,69.0,66.5,71.5,1350
+Grok 4.20,relationship,54.1,51.3,56.8,1237
+Grok 4.20,facilitates harm,11.5,8.7,14.4,471
+Grok 4.20,discourages harm,31.4,27.6,35.3,544
+Claude Haiku 4.5,sycophancy,22.5,20.6,24.4,1807
+Claude Haiku 4.5,delusional,22.7,20.6,25.0,1350
+Claude Haiku 4.5,relationship,12.9,11.1,14.7,1237
+Claude Haiku 4.5,facilitates harm,1.9,0.8,3.2,471
+Claude Haiku 4.5,discourages harm,40.8,36.6,45.0,544
+GPT-5.4 Mini,sycophancy,14.9,13.2,16.6,1806
+GPT-5.4 Mini,delusional,7.9,6.5,9.4,1350
+GPT-5.4 Mini,relationship,7.7,6.2,9.2,1237
+GPT-5.4 Mini,facilitates harm,0.0,0.0,0.0,471
+GPT-5.4 Mini,discourages harm,61.3,57.3,65.4,543
+GPT-4o,sycophancy,34.5,32.4,36.7,1807
+GPT-4o,delusional,50.5,47.9,53.2,1350
+GPT-4o,relationship,36.5,33.8,39.1,1237
+GPT-4o,facilitates harm,6.8,4.7,9.1,471
+GPT-4o,discourages harm,21.9,18.4,25.4,544
+Gemini 2.5 Pro (minimal),sycophancy,35.8,33.6,38.1,1807
+Gemini 2.5 Pro (minimal),delusional,63.6,61.0,66.1,1350
+Gemini 2.5 Pro (minimal),relationship,40.9,38.2,43.7,1237
+Gemini 2.5 Pro (minimal),facilitates harm,9.1,6.6,11.9,471
+Gemini 2.5 Pro (minimal),discourages harm,20.0,16.7,23.5,544
+Gemini 2.5 Flash-Lite,sycophancy,33.4,31.2,35.5,1807
+Gemini 2.5 Flash-Lite,delusional,55.4,52.8,58.1,1350
+Gemini 2.5 Flash-Lite,relationship,34.3,31.6,36.9,1237
+Gemini 2.5 Flash-Lite,facilitates harm,5.7,3.6,7.9,471
+Gemini 2.5 Flash-Lite,discourages harm,16.5,13.6,19.7,544
