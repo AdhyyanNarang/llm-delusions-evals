@@ -15,7 +15,9 @@ continuation straightforward.
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
+import os
 import random
 import sys
 from pathlib import Path
@@ -72,6 +74,49 @@ def default_output_path() -> Path:
     if Path("/gscratch/scrubbed/adhyyan").exists():
         return HYAK_OUTPUT_PATH
     return LOCAL_OUTPUT_PATH
+
+
+def configure_openai_api_key(
+    *,
+    openai_api_key_file: Path | None,
+    allow_prompt: bool,
+) -> str:
+    """Make OPENAI_EXPT_API_KEY visible to the OpenAI helper."""
+
+    target_env = spotcheck.OPENAI_API_KEY_ENV
+    if os.environ.get(target_env):
+        return f"env:{target_env}"
+
+    fallback_env = "OPENAI_API_KEY"
+    if os.environ.get(fallback_env):
+        os.environ[target_env] = os.environ[fallback_env]
+        return f"env:{fallback_env}"
+
+    if openai_api_key_file is not None:
+        key_path = openai_api_key_file.expanduser()
+        if not key_path.exists():
+            raise FileNotFoundError(f"Missing OpenAI API key file: {key_path}")
+        api_key = key_path.read_text(encoding="utf-8").strip()
+        if not api_key:
+            raise RuntimeError(f"OpenAI API key file is empty: {key_path}")
+        os.environ[target_env] = api_key
+        return f"file:{key_path}"
+
+    if allow_prompt and sys.stdin.isatty():
+        api_key = getpass.getpass(f"{target_env}: ").strip()
+        if api_key:
+            os.environ[target_env] = api_key
+            return "interactive_prompt"
+
+    raise RuntimeError(
+        f"{target_env} is not visible to this Python process. Set it in the same "
+        "shell that runs this script, for example:\n\n"
+        f"  read -s -p \"{target_env}: \" {target_env}; echo\n"
+        f"  export {target_env}\n"
+        "  python scripts/generate_misty_prompt_fix_rollout.py ...\n\n"
+        "For sbatch, put those export lines inside the batch script or pass "
+        "--openai-api-key-file /path/to/keyfile."
+    )
 
 
 def load_target_window(parquet_path: Path, eval_subset_id: str) -> tuple[pd.Series, pd.DataFrame]:
@@ -236,6 +281,20 @@ def parse_args() -> argparse.Namespace:
         default=spotcheck.ASSISTANT_MAX_OUTPUT_TOKENS,
     )
     parser.add_argument(
+        "--openai-api-key-file",
+        type=Path,
+        default=None,
+        help=(
+            "Optional file containing the OpenAI API key. Useful for sbatch jobs "
+            "where interactive env setup is inconvenient."
+        ),
+    )
+    parser.add_argument(
+        "--no-openai-key-prompt",
+        action="store_true",
+        help="Do not prompt for OPENAI_EXPT_API_KEY if it is missing.",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate data selection and prompts without loading models.",
@@ -298,17 +357,23 @@ def main() -> int:
         print(json.dumps(record["prompts"], indent=2))
         return 0
 
+    key_source = configure_openai_api_key(
+        openai_api_key_file=args.openai_api_key_file,
+        allow_prompt=not args.no_openai_key_prompt,
+    )
+    print(f"\nOpenAI API key source: {key_source}")
+
     set_seed(args.seed)
     print("\nGPU status")
     print(json.dumps(spotcheck.check_gpu(), indent=2))
 
+    print(f"\nChecking OpenAI client using env var {spotcheck.OPENAI_API_KEY_ENV}.")
+    spotcheck.get_openai_client()
+    print("OpenAI client ready.")
+
     print(f"\nLoading Qwen model: {spotcheck.QWEN_MODEL_ID}")
     spotcheck.load_qwen_model(use_4bit=args.use_4bit)
     print("Qwen loaded.")
-
-    print(f"Checking OpenAI client using env var {spotcheck.OPENAI_API_KEY_ENV}.")
-    spotcheck.get_openai_client()
-    print("OpenAI client ready.")
 
     write_json(
         partial_json_path,
