@@ -213,6 +213,7 @@ __marimo__/
 logs/
 logs-context/
 report/samples/
+sim_outputs/
 node_modules/
 .eslintcache
 
