@@ -20,6 +20,20 @@ from typing import Any
 import pandas as pd
 from IPython.display import HTML, display
 
+
+def _read_int_env(name: str, default: int) -> int:
+    """Read a positive integer environment variable with a default."""
+
+    raw_value = os.environ.get(name)
+    if not raw_value:
+        return default
+    try:
+        value = int(raw_value)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
 DATA_PATH = Path("items-sanitized.parquet")
 OUTPUT_PATH_ENV = "SPOTCHECK_OUTPUT_PATH"
 LOCAL_DEFAULT_OUTPUT_PATH = Path("sim_outputs/spotchecks.jsonl")
@@ -33,6 +47,7 @@ OPENAI_API_KEY_ENV = "OPENAI_EXPT_API_KEY"
 QWEN_DEVICE_ENV = "QWEN_DEVICE"
 QWEN_DEVICE_MAP_ENV = "QWEN_DEVICE_MAP"
 DEFAULT_QWEN_DEVICE = "cuda:0"
+ASSISTANT_MAX_OUTPUT_TOKENS_ENV = "SPOTCHECK_ASSISTANT_MAX_OUTPUT_TOKENS"
 
 USE_4BIT = False
 QWEN_GENERATION_PARAMS: dict[str, Any] = {
@@ -41,7 +56,7 @@ QWEN_GENERATION_PARAMS: dict[str, Any] = {
     "top_k": 20,
     "max_new_tokens": 256,
 }
-ASSISTANT_MAX_OUTPUT_TOKENS = 512
+ASSISTANT_MAX_OUTPUT_TOKENS = _read_int_env(ASSISTANT_MAX_OUTPUT_TOKENS_ENV, 1536)
 
 USER_SIMULATOR_SYSTEM_PROMPT = """You are simulating the next user message in a real conversation.
 
@@ -84,6 +99,17 @@ def openai_api_key_is_set() -> bool:
     """Return whether the assistant API key is visible to this kernel."""
 
     return bool(os.environ.get(OPENAI_API_KEY_ENV))
+
+
+def set_assistant_max_output_tokens(value: int) -> int:
+    """Set the assistant turn output-token cap for this kernel session."""
+
+    global ASSISTANT_MAX_OUTPUT_TOKENS
+    parsed = int(value)
+    if parsed <= 0:
+        raise ValueError("Assistant max output tokens must be positive.")
+    ASSISTANT_MAX_OUTPUT_TOKENS = parsed
+    return ASSISTANT_MAX_OUTPUT_TOKENS
 
 
 @dataclass
@@ -690,6 +716,13 @@ def build_spotcheck_ui(windows_df: pd.DataFrame | None = None) -> Any:
     window_widget = widgets.Dropdown(description="window", options=[])
     use_4bit_widget = widgets.Checkbox(value=USE_4BIT, description="load Qwen 4-bit")
     fast_n_widget = widgets.BoundedIntText(value=3, min=0, max=50, description="N")
+    assistant_tokens_widget = widgets.BoundedIntText(
+        value=ASSISTANT_MAX_OUTPUT_TOKENS,
+        min=64,
+        max=8192,
+        step=64,
+        description="asst toks",
+    )
     output_path_widget = widgets.Text(
         value=str(default_output_path()),
         description="save path",
@@ -746,6 +779,7 @@ def build_spotcheck_ui(windows_df: pd.DataFrame | None = None) -> Any:
 
     def do_generate(*_args: Any) -> None:
         try:
+            set_assistant_max_output_tokens(int(assistant_tokens_widget.value))
             record = generate_next()
             set_status(f"Generated {record['role']} message with {record['model']}.")
             redraw()
@@ -754,6 +788,7 @@ def build_spotcheck_ui(windows_df: pd.DataFrame | None = None) -> Any:
 
     def do_fast_forward(*_args: Any) -> None:
         try:
+            set_assistant_max_output_tokens(int(assistant_tokens_widget.value))
             records = fast_forward(int(fast_n_widget.value))
             roles = " -> ".join(record["role"] for record in records)
             set_status(f"Fast-forwarded {len(records)} message(s): {roles}")
@@ -780,7 +815,15 @@ def build_spotcheck_ui(windows_df: pd.DataFrame | None = None) -> Any:
         [
             widgets.HBox([k_widget, window_widget, refresh_button]),
             widgets.HBox([reset_button, load_qwen_button, use_4bit_widget]),
-            widgets.HBox([generate_button, fast_n_widget, fast_button, save_button]),
+            widgets.HBox(
+                [
+                    generate_button,
+                    fast_n_widget,
+                    fast_button,
+                    assistant_tokens_widget,
+                    save_button,
+                ]
+            ),
             output_path_widget,
             status_out,
             transcript_out,
