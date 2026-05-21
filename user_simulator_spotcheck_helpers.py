@@ -21,7 +21,11 @@ import pandas as pd
 from IPython.display import HTML, display
 
 DATA_PATH = Path("items-sanitized.parquet")
-DEFAULT_OUTPUT_PATH = Path("sim_outputs/spotchecks.jsonl")
+OUTPUT_PATH_ENV = "SPOTCHECK_OUTPUT_PATH"
+LOCAL_DEFAULT_OUTPUT_PATH = Path("sim_outputs/spotchecks.jsonl")
+HYAK_DEFAULT_OUTPUT_PATH = Path(
+    "/gscratch/scrubbed/adhyyan/llm-delusions-evals/outputs/spotchecks.jsonl"
+)
 
 QWEN_MODEL_ID = "Qwen/Qwen3-8B"
 ASSISTANT_MODEL_ID = "gpt-4o-mini"
@@ -60,6 +64,23 @@ def utc_now_iso() -> str:
     """Return a UTC timestamp suitable for JSONL records."""
 
     return datetime.now(timezone.utc).isoformat()
+
+
+def default_output_path() -> Path:
+    """Return the default JSONL path for the current environment."""
+
+    from_env = os.environ.get(OUTPUT_PATH_ENV)
+    if from_env:
+        return Path(from_env).expanduser()
+    if Path("/gscratch/scrubbed/adhyyan").exists():
+        return HYAK_DEFAULT_OUTPUT_PATH
+    return LOCAL_DEFAULT_OUTPUT_PATH
+
+
+def openai_api_key_is_set() -> bool:
+    """Return whether the assistant API key is visible to this kernel."""
+
+    return bool(os.environ.get(OPENAI_API_KEY_ENV))
 
 
 @dataclass
@@ -507,20 +528,20 @@ def state_to_record() -> dict[str, Any]:
     }
 
 
-def save_state_jsonl(path: str | Path = DEFAULT_OUTPUT_PATH) -> Path:
+def save_state_jsonl(path: str | Path | None = None) -> Path:
     """Append the current rollout state to JSONL."""
 
-    output_path = Path(path)
+    output_path = Path(path).expanduser() if path is not None else default_output_path()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(state_to_record(), ensure_ascii=False) + "\n")
     return output_path
 
 
-def load_saved_rollouts(path: str | Path = DEFAULT_OUTPUT_PATH) -> list[dict[str, Any]]:
+def load_saved_rollouts(path: str | Path | None = None) -> list[dict[str, Any]]:
     """Load saved rollout records from JSONL."""
 
-    input_path = Path(path)
+    input_path = Path(path).expanduser() if path is not None else default_output_path()
     if not input_path.exists():
         return []
     records = []
@@ -632,6 +653,11 @@ def build_spotcheck_ui(windows_df: pd.DataFrame | None = None) -> Any:
     window_widget = widgets.Dropdown(description="window", options=[])
     use_4bit_widget = widgets.Checkbox(value=USE_4BIT, description="load Qwen 4-bit")
     fast_n_widget = widgets.BoundedIntText(value=3, min=0, max=50, description="N")
+    output_path_widget = widgets.Text(
+        value=str(default_output_path()),
+        description="save path",
+        layout=widgets.Layout(width="900px"),
+    )
 
     refresh_button = widgets.Button(description="Refresh windows")
     reset_button = widgets.Button(description="Reset")
@@ -700,7 +726,7 @@ def build_spotcheck_ui(windows_df: pd.DataFrame | None = None) -> Any:
 
     def do_save(*_args: Any) -> None:
         try:
-            output_path = save_state_jsonl()
+            output_path = save_state_jsonl(output_path_widget.value)
             set_status(f"Saved rollout to {output_path}.")
         except Exception as exc:
             set_status(f"Save failed: {exc}")
@@ -718,6 +744,7 @@ def build_spotcheck_ui(windows_df: pd.DataFrame | None = None) -> Any:
             widgets.HBox([k_widget, window_widget, refresh_button]),
             widgets.HBox([reset_button, load_qwen_button, use_4bit_widget]),
             widgets.HBox([generate_button, fast_n_widget, fast_button, save_button]),
+            output_path_widget,
             status_out,
             transcript_out,
         ]
