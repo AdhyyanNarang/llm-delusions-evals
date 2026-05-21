@@ -98,7 +98,25 @@ def default_output_path() -> Path:
 def openai_api_key_is_set() -> bool:
     """Return whether the assistant API key is visible to this kernel."""
 
-    return bool(os.environ.get(OPENAI_API_KEY_ENV))
+    try:
+        clean_openai_api_key(os.environ.get(OPENAI_API_KEY_ENV))
+    except RuntimeError:
+        return False
+    return True
+
+
+def clean_openai_api_key(raw_api_key: str | None) -> str:
+    """Validate and normalize an OpenAI API key before constructing headers."""
+
+    api_key = str(raw_api_key or "").strip()
+    if not api_key:
+        raise RuntimeError(f"Set {OPENAI_API_KEY_ENV} before generating assistant turns.")
+    if re.search(r"\s", api_key):
+        raise RuntimeError(
+            f"{OPENAI_API_KEY_ENV} contains whitespace or pasted command text. "
+            "Unset it and enter only the API key value before generating assistant turns."
+        )
+    return api_key
 
 
 def set_assistant_max_output_tokens(value: int) -> int:
@@ -496,9 +514,8 @@ def get_openai_client() -> Any:
     if OPENAI_CLIENT is not None:
         return OPENAI_CLIENT
 
-    api_key = os.environ.get(OPENAI_API_KEY_ENV)
-    if not api_key:
-        raise RuntimeError(f"Set {OPENAI_API_KEY_ENV} before generating assistant turns.")
+    api_key = clean_openai_api_key(os.environ.get(OPENAI_API_KEY_ENV))
+    os.environ[OPENAI_API_KEY_ENV] = api_key
 
     from openai import OpenAI
 

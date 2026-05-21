@@ -85,25 +85,30 @@ def configure_openai_api_key(
 
     target_env = spotcheck.OPENAI_API_KEY_ENV
     if os.environ.get(target_env):
+        os.environ[target_env] = spotcheck.clean_openai_api_key(os.environ[target_env])
         return f"env:{target_env}"
 
     fallback_env = "OPENAI_API_KEY"
     if os.environ.get(fallback_env):
-        os.environ[target_env] = os.environ[fallback_env]
+        os.environ[target_env] = spotcheck.clean_openai_api_key(
+            os.environ[fallback_env]
+        )
         return f"env:{fallback_env}"
 
     if openai_api_key_file is not None:
         key_path = openai_api_key_file.expanduser()
         if not key_path.exists():
             raise FileNotFoundError(f"Missing OpenAI API key file: {key_path}")
-        api_key = key_path.read_text(encoding="utf-8").strip()
-        if not api_key:
-            raise RuntimeError(f"OpenAI API key file is empty: {key_path}")
+        api_key = spotcheck.clean_openai_api_key(
+            key_path.read_text(encoding="utf-8")
+        )
         os.environ[target_env] = api_key
         return f"file:{key_path}"
 
     if allow_prompt and sys.stdin.isatty():
-        api_key = getpass.getpass(f"{target_env}: ").strip()
+        api_key = spotcheck.clean_openai_api_key(
+            getpass.getpass(f"{target_env}: ")
+        )
         if api_key:
             os.environ[target_env] = api_key
             return "interactive_prompt"
@@ -311,6 +316,12 @@ def main() -> int:
         if args.partial_json is not None
         else output_path.with_suffix(output_path.suffix + ".partial.json")
     )
+    key_source = None
+    if not args.dry_run:
+        key_source = configure_openai_api_key(
+            openai_api_key_file=args.openai_api_key_file,
+            allow_prompt=not args.no_openai_key_prompt,
+        )
 
     row, _ = load_target_window(parquet_path, args.eval_subset_id)
     messages = list(row["messages"])
@@ -357,10 +368,6 @@ def main() -> int:
         print(json.dumps(record["prompts"], indent=2))
         return 0
 
-    key_source = configure_openai_api_key(
-        openai_api_key_file=args.openai_api_key_file,
-        allow_prompt=not args.no_openai_key_prompt,
-    )
     print(f"\nOpenAI API key source: {key_source}")
 
     set_seed(args.seed)
@@ -424,4 +431,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from None
