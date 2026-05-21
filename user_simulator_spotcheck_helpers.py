@@ -30,6 +30,9 @@ HYAK_DEFAULT_OUTPUT_PATH = Path(
 QWEN_MODEL_ID = "Qwen/Qwen3-8B"
 ASSISTANT_MODEL_ID = "gpt-4o-mini"
 OPENAI_API_KEY_ENV = "OPENAI_EXPT_API_KEY"
+QWEN_DEVICE_ENV = "QWEN_DEVICE"
+QWEN_DEVICE_MAP_ENV = "QWEN_DEVICE_MAP"
+DEFAULT_QWEN_DEVICE = "cuda:0"
 
 USE_4BIT = False
 QWEN_GENERATION_PARAMS: dict[str, Any] = {
@@ -292,6 +295,26 @@ def check_gpu() -> dict[str, Any]:
     return status
 
 
+def _qwen_target_device(torch_module: Any) -> str:
+    """Return the requested single-device target for Qwen loading."""
+
+    from_env = os.environ.get(QWEN_DEVICE_ENV)
+    if from_env:
+        return from_env
+    if torch_module.cuda.is_available():
+        return DEFAULT_QWEN_DEVICE
+    return "cpu"
+
+
+def _parse_device_map(value: str) -> str | dict[str, str]:
+    """Parse a simple device-map env var value."""
+
+    normalized = value.strip()
+    if normalized.lower() == "auto":
+        return "auto"
+    return {"": normalized}
+
+
 def load_qwen_model(
     model_id: str = QWEN_MODEL_ID,
     *,
@@ -309,11 +332,18 @@ def load_qwen_model(
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model_kwargs: dict[str, Any] = {"device_map": "auto"}
+    model_kwargs: dict[str, Any] = {}
+    requested_device_map = os.environ.get(QWEN_DEVICE_MAP_ENV)
+    target_device = _qwen_target_device(torch)
 
     if use_4bit:
         from transformers import BitsAndBytesConfig
 
+        model_kwargs["device_map"] = (
+            _parse_device_map(requested_device_map)
+            if requested_device_map
+            else {"": target_device}
+        )
         model_kwargs["quantization_config"] = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_compute_dtype=torch.bfloat16,
@@ -322,8 +352,12 @@ def load_qwen_model(
         )
     else:
         model_kwargs["torch_dtype"] = torch.bfloat16
+        if requested_device_map:
+            model_kwargs["device_map"] = _parse_device_map(requested_device_map)
 
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
+    if not use_4bit and not requested_device_map and target_device != "cpu":
+        model = model.to(target_device)
     model.eval()
 
     QWEN_TOKENIZER = tokenizer
@@ -409,7 +443,10 @@ def generate_qwen_user(messages: list[dict[str, Any]]) -> dict[str, str]:
     ]
     prompt = _apply_qwen_chat_template(QWEN_TOKENIZER, prompt_messages)
     inputs = QWEN_TOKENIZER(prompt, return_tensors="pt")
-    device = getattr(QWEN_MODEL, "device", None)
+    try:
+        device = next(QWEN_MODEL.parameters()).device
+    except StopIteration:
+        device = getattr(QWEN_MODEL, "device", None)
     if device is not None:
         inputs = {key: value.to(device) for key, value in inputs.items()}
 
